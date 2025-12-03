@@ -3,12 +3,12 @@ package es.uniovi.eii.ds.main;
 import java.io.*;
 import java.util.Arrays;
 
+import es.uniovi.eii.ds.editor.Editor;
+
 public class Main {
 
     BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-	
-	// Represents the document of the editor.
-	StringBuilder text = new StringBuilder();
+    Editor editor = new Editor();
 
     public static void main(String[] args) {
         new Main().run();
@@ -25,72 +25,33 @@ public class Main {
 
 			switch (command.name) {
 				case "open" -> open(args);
-				case "insert" -> { 
-					for (String word : args) {
-						text.append(" ").append(word);
-					}
-				}
-				case "delete" -> {
-					int indexOfLastWord = text.toString().trim().lastIndexOf(" ");
-					if (indexOfLastWord == -1)
-						text = new StringBuilder("");
-					else
-						text.setLength(indexOfLastWord);
-				}
+				case "insert" -> editor.insert(args);
+				case "delete" -> editor.delete();
 				case "replace" -> replace(args);
+				case "record" -> record(args);
+				case "stop" -> editor.stopRecording();
+				case "execute" -> runMacro(args);
 				case "help" -> showHelp();
-				case "record" -> {
-					// String macroName = args[0];
-					// ...
-				}
-				case "stop" -> { 
-					// ...
-				}
-				case "execute" -> {
-					// String macroName = args[0];
-					// ...
-				}
 				default -> {
 					System.out.println("Unknown command");
 					continue;
 				}
 			}
 
-			System.out.println(text);
+			System.out.println(editor.getText());
 		}
 	}
 
-	//$-- Some individual user commands that do a bit more work ---------------
+	//$-- Some individual commands that do a bit more work ----------------------------
 
 	private void open(String[] args) {
 		if (!checkArguments(args, 1, "open <file>"))
 			return;
 		try {
 			String filename = args[0];
-			text = new StringBuilder(readFile(filename));
+			editor.open(filename);
 		} catch (Exception e) {
 			System.out.println("Document could not be opened");
-		}
-	}
-
-	private String readFile(String filename) {
-		InputStream in = getClass().getResourceAsStream("/" + filename);
-		if (in == null)
-			throw new IllegalArgumentException("File not found: " + filename);
-
-		try (BufferedReader input = new BufferedReader(new InputStreamReader(in))) {
-			StringBuilder result = new StringBuilder();
-			String line;
-			boolean firstLine = true;
-			while ((line = input.readLine()) != null) {
-				if (!firstLine)
-					result.append(System.lineSeparator());
-				result.append(line);
-				firstLine = false;
-			}
-			return result.toString();
-		} catch (IOException e) {
-			throw new UncheckedIOException(e);
 		}
 	}
 
@@ -99,10 +60,28 @@ public class Main {
 			return;
 		String find = args[0];
 		String replace = args[1];
-		text = new StringBuilder(text.toString().replace(find, replace));
+		editor.replace(find, replace);
 	}
 
-	//$-- Auxiliary methods ---------------------------------------------------
+	private void record(String[] args) {
+		if (!checkArguments(args, 1, "record <macro>"))
+			return;
+		String macroName = args[0];
+		editor.recordMacro(macroName);
+	}
+
+	private void runMacro(String[] args) {
+		if (!checkArguments(args, 1, "execute <macro>"))
+			return;
+		String macroName = args[0];
+		if (editor.hasMacro(macroName)) {
+			editor.runMacro(macroName);
+		} else {
+			System.out.println("There is no macro with that name");
+		}
+	}
+
+	//$-- Auxiliary methods ----------------------------------------------------
 
 	// YOU DON'T NEED TO UNDERSTAND OR MODIFY THE CODE BELOW THIS LINE
 
